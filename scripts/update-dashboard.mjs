@@ -13,7 +13,7 @@ const data=JSON.parse(fs.readFileSync(jsonPath,'utf8'));
 for(const key of ['N3_COUNTRY','N3_SUMMARY','EOL','EOL_COUNTRY','EOL_SUMMARY','meta']) {
   if(data[key]===undefined) throw new Error('Snapshot missing '+key);
 }
-const marker=/const DATA\s*=\s*\{[\s\S]*?\};(?=\s*const N3\s*=\s*DATA\.N3_COUNTRY)/m;
+const marker=/const DATA\s*=\s*\{[\s\S]*?\};(?=\s*(?:const N3\s*=\s*DATA\.N3_COUNTRY|const state\s*=))/m;
 if(!marker.test(html)) throw new Error('Expected embedded DATA section not found; source HTML layout may differ');
 const safe=JSON.stringify(data,null,2).replaceAll('<','\\u003c');
 const updated=html.replace(marker,'const DATA = '+safe+';');
