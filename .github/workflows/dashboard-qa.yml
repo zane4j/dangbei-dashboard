@@ -1,0 +1,35 @@
+name: Dashboard QA
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JavaScript syntax
+        run: |
+          node --check scripts/validate-snapshot.mjs
+          node --check scripts/update-dashboard.mjs
+      - name: Validate synthetic source data
+        run: node scripts/validate-snapshot.mjs examples/sample-snapshot.json
+      - name: Test dashboard data replacement
+        run: |
+          node scripts/update-dashboard.mjs examples/dashboard-demo.html examples/sample-snapshot.json /tmp/dashboard-generated.html
+          test -s /tmp/dashboard-generated.html
+      - name: Parse generated HTML scripts
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import vm from 'node:vm';
+          const html = fs.readFileSync('/tmp/dashboard-generated.html', 'utf8');
+          const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
+          if (!scripts.length) throw new Error('No inline script found in demo');
+          for (const script of scripts) new vm.Script(script[1]);
+          console.log('Parsed '+scripts.length+' inline scripts successfully');
+          NODE
